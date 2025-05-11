@@ -7,6 +7,9 @@ using UnityEngine;
 
 #endregion
 
+/// <summary>
+/// Handles button interactions for starting and joining games.
+/// </summary>
 public class ButtonHandler : MonoBehaviour
 {
     [SerializeField] private LeanButton startGameButton;
@@ -91,11 +94,6 @@ public class ButtonHandler : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"Error joining shared game: {e}");
-        }
-        finally
-        {
-            startGameButton.interactable = true;
-            joinGameButton.interactable = true;
         }
     }
 }

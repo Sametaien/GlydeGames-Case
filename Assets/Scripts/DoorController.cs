@@ -6,6 +6,9 @@ using UnityEngine;
 
 #endregion
 
+/// <summary>
+/// Controls the door's opening and closing behavior.
+/// </summary>
 public class DoorController : NetworkBehaviour
 {
     [SerializeField] private float openAngle = 90f;
@@ -44,6 +47,7 @@ public class DoorController : NetworkBehaviour
         if (_isPlayerInRange && !_isToggling && Input.GetKeyDown(KeyCode.E)) RpcRequestToggleDoor(!IsOpen);
     }
 
+    // We use this solution because we need to separate the trigger collider from the door itself.
     private void OnTriggerEnter(Collider other)
     {
         OnPlayerEnter(other);

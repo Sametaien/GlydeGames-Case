@@ -6,9 +6,10 @@ using UnityEngine;
 
 public class FPSCameraController : MonoBehaviour
 {
+    // We don't need to use this script. This is deprecated.
     [SerializeField] public Transform playerTransform;
     [SerializeField] private float mouseSensitivity = 2f;
-    [SerializeField] private Vector3 cameraOffset = new(0, 0.8f, 0); // Eye-level position
+    [SerializeField] private Vector3 cameraOffset = new(0, 0.8f, 0);
     [SerializeField] private float pitchMin = -80f;
     [SerializeField] private float pitchMax = 80f;
 

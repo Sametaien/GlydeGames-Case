@@ -1,35 +1,34 @@
+#region
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Fusion;
 using Fusion.Sockets;
+using PlayerRelated;
 using TMPro;
 using UnityEngine;
 
+#endregion
+
 public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
 {
-    [Header("UI")]
-    [SerializeField] private TMP_Text playerCountText;
+    private const float LOG_DURATION = 5f;
+    private const int MAX_LOGS = 5;
+
+    [Header("UI")] [SerializeField] private TMP_Text playerCountText;
+
     [SerializeField] private TMP_Text pingText;
     [SerializeField] private TMP_Text healthText;
     [SerializeField] private TMP_Text eventsText;
+    private readonly List<LogEntry> _eventLog = new();
+    private string _lastPingText;
+    private int _playerCount;
 
     private NetworkRunner _runner;
-    private readonly List<LogEntry> _eventLog = new List<LogEntry>(); // Zaman damgalı loglar
-    private int _playerCount;
-    private string _lastPingText;
-    private const float LOG_DURATION = 5f; // Logların ekranda kalma süresi (saniye)
-    private const int MAX_LOGS = 5; // Maksimum log sayısı
 
-    // Singleton
     public static FusionHUD Instance { get; private set; }
-
-    private struct LogEntry
-    {
-        public string Message;
-        public float Timestamp;
-    }
 
     private void Awake()
     {
@@ -38,6 +37,7 @@ public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
         playerCountText.text = null;
@@ -50,10 +50,8 @@ public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (_runner == null) return;
 
-        // Oyuncu sayısı
         playerCountText.text = $"Oyuncular: {_playerCount}";
 
-        // Yerel ping
         if (_runner.IsRunning)
         {
             var rtt = _runner.GetPlayerRtt(_runner.LocalPlayer) * 1000f;
@@ -69,16 +67,12 @@ public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
             pingText.text = "Ping: -";
         }
 
-        // Eski logları temizle
         CleanOldLogs();
     }
 
     public void InjectRunner(NetworkRunner runner)
     {
-        if (_runner != null)
-        {
-            _runner.RemoveCallbacks(this);
-        }
+        if (_runner != null) _runner.RemoveCallbacks(this);
         _runner = runner;
         _runner.AddCallbacks(this);
         _playerCount = _runner.ActivePlayers.Count();
@@ -92,51 +86,41 @@ public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
         _playerCount = 0;
         _eventLog.Clear();
         eventsText.text = string.Empty;
+        playerCountText.text = string.Empty;
+        pingText.text = string.Empty;
+        healthText.text = string.Empty;
     }
 
-    private void LogEvent(string msg)
+    public void LogEvent(string msg)
     {
-        // Yeni log ekle
         _eventLog.Add(new LogEntry
         {
             Message = $"{msg}\n",
             Timestamp = Time.time
         });
 
-        // Maksimum log sayısını aşarsak en eskiyi kaldır
-        if (_eventLog.Count > MAX_LOGS)
-        {
-            _eventLog.RemoveAt(0);
-        }
+        if (_eventLog.Count > MAX_LOGS) _eventLog.RemoveAt(0);
 
         UpdateEventText();
     }
 
     private void CleanOldLogs()
     {
-        bool updated = false;
-        for (int i = _eventLog.Count - 1; i >= 0; i--)
-        {
+        var updated = false;
+        for (var i = _eventLog.Count - 1; i >= 0; i--)
             if (Time.time - _eventLog[i].Timestamp > LOG_DURATION)
             {
                 _eventLog.RemoveAt(i);
                 updated = true;
             }
-        }
 
-        if (updated)
-        {
-            UpdateEventText();
-        }
+        if (updated) UpdateEventText();
     }
 
     private void UpdateEventText()
     {
-        StringBuilder sb = new StringBuilder();
-        foreach (var log in _eventLog)
-        {
-            sb.Append(log.Message);
-        }
+        var sb = new StringBuilder();
+        foreach (var log in _eventLog) sb.Append(log.Message);
         eventsText.text = sb.ToString();
     }
 
@@ -145,16 +129,20 @@ public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
         healthText.text = $"Can: {hp}/{PlayerStats.MaxHealth}";
     }
 
+    private struct LogEntry
+    {
+        public string Message;
+        public float Timestamp;
+    }
+
     #region INetworkRunnerCallbacks
 
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
     {
-        
     }
 
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
     {
-        
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -171,66 +159,63 @@ public class FusionHUD : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
     {
-        
     }
 
-    public void OnConnectedToServer(NetworkRunner runner) { }
+    public void OnConnectedToServer(NetworkRunner runner)
+    {
+    }
+
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
     {
-        
     }
 
     public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
     {
-        
     }
 
     public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken)
     {
-        
     }
 
     public void OnSceneLoadDone(NetworkRunner runner)
     {
-        
     }
 
     public void OnSceneLoadStart(NetworkRunner runner)
     {
-        
     }
 
-    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
+    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
+    {
+    }
+
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
     {
-        
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
     {
-        
     }
 
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message)
     {
-        
     }
 
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data)
     {
-        
     }
 
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress)
     {
-        
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        
     }
 
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    {
+    }
+
     #endregion
 }

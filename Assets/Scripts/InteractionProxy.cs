@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// This class is used to manage the interaction with the door.
+/// </summary>
 public class InteractionProxy : MonoBehaviour
 {
     public DoorController door;

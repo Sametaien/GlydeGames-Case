@@ -2,9 +2,12 @@
 
 using Fusion;
 using UnityEngine;
+using UsableItems;
 
 #endregion
-
+///// <summary>
+/// Handles collision events for objects held by the ItemHolder.
+/// </summary>
 public class HeldObjectCollisionHandler : MonoBehaviour
 {
     private ItemHolder _itemHolder;

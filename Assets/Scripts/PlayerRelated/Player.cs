@@ -6,76 +6,124 @@ using UnityEngine;
 
 #endregion
 
-
-[DefaultExecutionOrder(-5)]
-public sealed class Player : NetworkBehaviour
+/// <summary>
+/// Player class that handles player movement, health, and camera control.
+/// </summary>
+namespace PlayerRelated
 {
-    public SimpleKCC KCC;
-    public PlayerInput Input;
-    public Transform CameraPivot;
-    public Transform CameraHandle;
-
-    [Header("Movement")] public float MoveSpeed = 10.0f;
-
-    public float JumpImpulse = 10.0f;
-    public float UpGravity = -25.0f;
-    public float DownGravity = -40.0f;
-    public float GroundAcceleration = 55.0f;
-    public float GroundDeceleration = 25.0f;
-    public float AirAcceleration = 25.0f;
-    public float AirDeceleration = 1.3f;
-
-    [Networked] private Vector3 _moveVelocity { get; set; }
-
-    private void LateUpdate()
+    [DefaultExecutionOrder(-5)]
+    public sealed class Player : NetworkBehaviour
     {
-        // Only InputAuthority needs to update camera.
-        if (HasInputAuthority == false)
-            return;
+        public SimpleKCC KCC;
+        public PlayerInput Input;
+        public Transform CameraPivot;
+        public Transform CameraHandle;
 
-        // Update camera pivot and transfer properties from camera handle to Main Camera.
-        // Render() is executed before KCC because of [OrderBefore(typeof(KCC))].
-        // So we have to do it from LateUpdate() - which is called after Render().
+        [Header("Movement")] public float MoveSpeed = 10.0f;
 
-        var pitchRotation = KCC.GetLookRotation(true, false);
-        CameraPivot.localRotation = Quaternion.Euler(pitchRotation);
+        public float JumpImpulse = 10.0f;
+        public float UpGravity = -25.0f;
+        public float DownGravity = -40.0f;
+        public float GroundAcceleration = 55.0f;
+        public float GroundDeceleration = 25.0f;
+        public float AirAcceleration = 25.0f;
+        public float AirDeceleration = 1.3f;
+        public float MaxHealth = 100f;
+        private bool _applyKnockback;
+        private Vector3 _pendingKnockback;
 
-        Camera.main.transform.SetPositionAndRotation(CameraHandle.position, CameraHandle.rotation);
-    }
+        [field: Header("Health")] [Networked] public float Health { get; set; } = 100f;
 
-    public override void FixedUpdateNetwork()
-    {
-        // Apply look rotation delta. This propagates to Transform component immediately.
-        KCC.AddLookRotation(Input.CurrentInput.LookRotationDelta);
+        [Networked] private Vector3 _moveVelocity { get; set; }
 
-        // Set default world space input direction and jump impulse.
-        var inputDirection = KCC.TransformRotation * new Vector3(Input.CurrentInput.MoveDirection.x, 0.0f,
-            Input.CurrentInput.MoveDirection.y);
-        float jumpImpulse = default;
+        private void Awake()
+        {
+            if (HasInputAuthority && FusionHUD.Instance != null) FusionHUD.Instance.UpdateHealth((int)Health);
+        }
 
-        // Comparing current input to previous input - this prevents glitches when input is lost.
-        if (Input.CurrentInput.Actions.WasPressed(Input.PreviousInput.Actions, GameplayInput.JUMP_BUTTON))
-            if (KCC.IsGrounded)
-                // Set world space jump vector.
-                jumpImpulse = JumpImpulse;
+        private void LateUpdate()
+        {
+            if (HasInputAuthority == false) return;
 
-        // It feels better when the player falls quicker.
-        KCC.SetGravity(KCC.RealVelocity.y >= 0.0f ? UpGravity : DownGravity);
+            var pitchRotation = KCC.GetLookRotation(true, false);
+            CameraPivot.localRotation = Quaternion.Euler(pitchRotation);
 
-        var desiredMoveVelocity = inputDirection * MoveSpeed;
+            Camera.main.transform.SetPositionAndRotation(CameraHandle.position, CameraHandle.rotation);
+        }
 
-        if (KCC.ProjectOnGround(desiredMoveVelocity, out var projectedDesiredMoveVelocity))
-            desiredMoveVelocity = Vector3.Normalize(projectedDesiredMoveVelocity) * MoveSpeed;
+        public override void FixedUpdateNetwork()
+        {
+            KCC.AddLookRotation(Input.CurrentInput.LookRotationDelta);
 
-        float acceleration;
-        if (desiredMoveVelocity == Vector3.zero)
-            // No desired move velocity - we are stopping.
-            acceleration = KCC.IsGrounded ? GroundDeceleration : AirDeceleration;
-        else
-            acceleration = KCC.IsGrounded ? GroundAcceleration : AirAcceleration;
+            var inputDirection = KCC.TransformRotation * new Vector3(Input.CurrentInput.MoveDirection.x, 0.0f,
+                Input.CurrentInput.MoveDirection.y);
+            float jumpImpulse = default;
 
-        _moveVelocity = Vector3.Lerp(_moveVelocity, desiredMoveVelocity, acceleration * Runner.DeltaTime);
+            if (Input.CurrentInput.Actions.WasPressed(Input.PreviousInput.Actions, GameplayInput.JUMP_BUTTON))
+                if (KCC.IsGrounded)
+                    jumpImpulse = JumpImpulse;
 
-        KCC.Move(_moveVelocity, jumpImpulse);
+            KCC.SetGravity(KCC.RealVelocity.y >= 0.0f ? UpGravity : DownGravity);
+
+            var desiredMoveVelocity = inputDirection * MoveSpeed;
+
+            if (KCC.ProjectOnGround(desiredMoveVelocity, out var projectedDesiredMoveVelocity))
+                desiredMoveVelocity = Vector3.Normalize(projectedDesiredMoveVelocity) * MoveSpeed;
+
+            float acceleration;
+            if (desiredMoveVelocity == Vector3.zero)
+                acceleration = KCC.IsGrounded ? GroundDeceleration : AirDeceleration;
+            else
+                acceleration = KCC.IsGrounded ? GroundAcceleration : AirAcceleration;
+
+            _moveVelocity = Vector3.Lerp(_moveVelocity, desiredMoveVelocity, acceleration * Runner.DeltaTime);
+
+            KCC.Move(_moveVelocity, jumpImpulse);
+
+            if (_applyKnockback)
+            {
+                KCC.Move(_pendingKnockback);
+                _applyKnockback = false;
+            }
+        }
+
+        // This method is called when the player takes damage.
+        public void TakeDamage(float damage, Vector3 hitDirection, float knockbackForce)
+        {
+            if (!HasStateAuthority) return;
+
+            Health = Mathf.Max(0, Health - damage);
+            Debug.Log($"{gameObject.name} took {damage} damage. Remaining health: {Health}");
+
+            if (KCC != null)
+            {
+                _pendingKnockback = -hitDirection.normalized * knockbackForce;
+                _applyKnockback = true;
+                Debug.Log($"{gameObject.name} queued knockback with force: {_pendingKnockback}");
+            }
+
+            RpcUpdateHealth(Health);
+
+            //if (Health <= 0) RpcDie(); We can use for further damage checks
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RpcUpdateHealth(float newHealth)
+        {
+            if (HasInputAuthority && FusionHUD.Instance != null) FusionHUD.Instance.UpdateHealth((int)newHealth);
+        }
+
+        // This method is called when the player dies.
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RpcDie()
+        {
+            if (gameObject != null)
+            {
+                gameObject.SetActive(false); // Runner.Despawn is a better solution
+                Debug.Log($"{gameObject.name} died.");
+                if (HasInputAuthority && FusionHUD.Instance != null)
+                    FusionHUD.Instance.LogEvent($"{Object.InputAuthority} died.");
+            }
+        }
     }
 }

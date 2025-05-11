@@ -5,24 +5,26 @@ using UnityEngine;
 
 #endregion
 
-public class PlayerStats : NetworkBehaviour
+namespace PlayerRelated
 {
-    public const int MaxHealth = 100;
-
-    [Networked]
-    [OnChangedRender(nameof(OnHealthChanged))]
-    public int Health { get; set; } = 100;
-
-    // Yerel oyuncu hasar alırken çağır
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RpcTakeDamage(int amount)
+    public class PlayerStats : NetworkBehaviour
     {
-        Health = Mathf.Max(0, Health - amount);
-    }
+        public const int MaxHealth = 100;
 
-    private void OnHealthChanged()
-    {
-        if (Object.HasInputAuthority) // sadece kendi HUD’unu güncelle
-            FusionHUD.Instance?.UpdateHealth(Health);
+        [Networked]
+        [OnChangedRender(nameof(OnHealthChanged))]
+        public int Health { get; set; } = 100;
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcTakeDamage(int amount)
+        {
+            Health = Mathf.Max(0, Health - amount);
+        }
+
+        private void OnHealthChanged()
+        {
+            if (Object.HasInputAuthority) 
+                FusionHUD.Instance?.UpdateHealth(Health);
+        }
     }
 }
