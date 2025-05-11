@@ -41,6 +41,7 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined
             {
                 var spawnedPlayer = runner.Spawn(playerPrefab, spawnPosition, Quaternion.identity, player);
                 runner.SetPlayerObject(player, spawnedPlayer);
+                runner.SetPlayerAlwaysInterested(player, spawnedPlayer,true);
 
                 if (spawnedPlayer == null)
                     Debug.LogError($"Spawned player is null for player {player}.");

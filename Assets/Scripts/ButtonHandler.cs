@@ -66,11 +66,6 @@ public class ButtonHandler : MonoBehaviour
         {
             Debug.LogError($"Error starting shared game: {e}");
         }
-        finally
-        {
-            startGameButton.interactable = true;
-            joinGameButton.interactable = true;
-        }
     }
 
     private async void OnJoinGameButtonClicked()

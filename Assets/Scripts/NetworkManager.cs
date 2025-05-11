@@ -27,20 +27,25 @@ public class NetworkManager : MonoBehaviour
 
     [SerializeField] private Text debugText;
 
+    [Header("HUD")] [SerializeField] private FusionHUD fusionHud;
+
     [Header("Configuration")] [SerializeField]
     private NetworkRunner runnerPrefab;
 
-    [SerializeField] public string defaultSessionName = "DefaultSession";
-    [SerializeField] public int maxPlayerCount = 4;
-    [SerializeField] public int defaultSceneIndex = 1;
+    [SerializeField] private string defaultSessionName = "DefaultSession";
+    [SerializeField] private int maxPlayerCount = 4;
+    [SerializeField] private int defaultSceneIndex = 1;
     [SerializeField] private GameObject loadingScreen;
     [SerializeField] private string initialScenePath;
 
     [Header("Scene Events")] [SerializeField]
     private UnityEvent onSceneReady;
 
+    [Header("UI References")] [SerializeField]
+    private Button exitButton; 
+
     private NetworkStage currentStage = NetworkStage.Disconnected;
-    private NetworkRunner runnerInstance;
+    public NetworkRunner runnerInstance;
 
     #region Singleton
 
@@ -83,12 +88,13 @@ public class NetworkManager : MonoBehaviour
 
         if (runnerPrefab == null)
         {
-            Debug.LogError("NetworkRunner prefab is not assigned in NetworkManager.");
+            LogError("NetworkRunner prefab is not assigned.", "Configuration Error");
             CurrentStage = NetworkStage.None;
             return;
         }
 
         CurrentStage = NetworkStage.Disconnected;
+        SetupExitButton();
     }
 
     private void OnDestroy()
@@ -96,104 +102,67 @@ public class NetworkManager : MonoBehaviour
         if (Instance == this)
             Instance = null;
 
-        if (runnerInstance != null)
-        {
-            Destroy(runnerInstance.gameObject);
-            runnerInstance = null;
-        }
+        CleanupRunner();
     }
 
     public async Task<bool> StartSharedClient(string sessionName = null)
     {
-        if (CurrentStage != NetworkStage.Disconnected)
-        {
-            Debug.LogError($"Cannot start shared game while in stage: {CurrentStage}");
+        if (!CanStartSession())
             return false;
-        }
 
         CurrentStage = NetworkStage.Connecting;
-        if (loadingScreen != null) loadingScreen.SetActive(true);
+        ToggleLoadingScreen(true);
 
         try
         {
             if (!await InitializeRunnerAsync())
-            {
-                CurrentStage = NetworkStage.Disconnected;
-                if (loadingScreen != null) loadingScreen.SetActive(false);
-                return false;
-            }
+                return HandleFailure("Failed to initialize runner.");
 
-            if (string.IsNullOrEmpty(sessionName))
-                sessionName = defaultSessionName;
-
+            sessionName ??= defaultSessionName;
             var sceneRef = SceneRef.FromIndex(defaultSceneIndex);
             var success = await StartGameAsync(GameMode.Shared, sceneRef, sessionName);
 
             CurrentStage = success ? NetworkStage.Connected : NetworkStage.Disconnected;
-            if (loadingScreen != null) loadingScreen.SetActive(false);
+            ToggleLoadingScreen(false);
             return success;
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to start shared game: {e}");
-            debugWindow.TurnOn();
-            debugText.text = "Something went wrong while starting the game.";
-            CurrentStage = NetworkStage.Disconnected;
-            if (loadingScreen != null) loadingScreen.SetActive(false);
-            return false;
+            return HandleFailure($"Failed to start shared game: {e.Message}");
         }
     }
 
     public async Task<bool> JoinSharedClient(string sessionName)
     {
-        if (CurrentStage != NetworkStage.Disconnected)
+        if (!CanStartSession() || string.IsNullOrEmpty(sessionName))
         {
-            Debug.LogError($"Cannot join shared game while in stage: {CurrentStage}");
-            return false;
-        }
-
-        if (string.IsNullOrEmpty(sessionName))
-        {
-            Debug.LogError("[NetworkManager] Session name cannot be empty.");
-            debugWindow.TurnOn();
-            debugText.text = "<size=60>Error!</size> \n \n Session name cannot be empty.";
+            LogError("Session name cannot be empty.", "Invalid Session Name");
             return false;
         }
 
         CurrentStage = NetworkStage.Connecting;
-        if (loadingScreen != null) loadingScreen.SetActive(true);
+        ToggleLoadingScreen(true);
 
         try
         {
             if (!await InitializeRunnerAsync())
-            {
-                CurrentStage = NetworkStage.Disconnected;
-                if (loadingScreen != null) loadingScreen.SetActive(false);
-                return false;
-            }
+                return HandleFailure("Failed to initialize runner.");
 
             var sceneRef = SceneRef.FromIndex(defaultSceneIndex);
             var success = await StartGameAsync(GameMode.Shared, sceneRef, sessionName);
 
             CurrentStage = success ? NetworkStage.Connected : NetworkStage.Disconnected;
-            if (loadingScreen != null) loadingScreen.SetActive(false);
+            ToggleLoadingScreen(false);
             return success;
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to join shared game: {e}");
-            debugWindow.TurnOn();
-            debugText.text = "Something went wrong while joining the game.";
-            CurrentStage = NetworkStage.Disconnected;
-            if (loadingScreen != null) loadingScreen.SetActive(false);
-            return false;
+            return HandleFailure($"Failed to join shared game: {e.Message}");
         }
     }
 
     public async Task DisconnectAsync()
     {
-        Debug.Log("Disconnecting from the game...");
-
         if (CurrentStage == NetworkStage.Disconnected || runnerInstance == null)
         {
             CurrentStage = NetworkStage.Disconnected;
@@ -201,28 +170,29 @@ public class NetworkManager : MonoBehaviour
         }
 
         CurrentStage = NetworkStage.Disconnecting;
-        if (loadingScreen != null) loadingScreen.SetActive(true);
+        ToggleLoadingScreen(true);
 
         try
         {
             await runnerInstance.Shutdown(shutdownReason: ShutdownReason.Ok);
-            Destroy(runnerInstance.gameObject);
-            runnerInstance = null;
+            CleanupRunner();
 
             if (!string.IsNullOrEmpty(initialScenePath))
             {
-                var loadSceneTask = SceneManager.LoadSceneAsync(initialScenePath);
-                while (!loadSceneTask.isDone) await Task.Yield();
+                var asyncOp = SceneManager.LoadSceneAsync(initialScenePath);
+                if (asyncOp != null)
+                    while (!asyncOp.isDone)
+                        await Task.Yield();
             }
 
             CurrentStage = NetworkStage.Disconnected;
-            if (loadingScreen != null) loadingScreen.SetActive(false);
+            ToggleLoadingScreen(false);
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to disconnect: {e}");
+            LogError($"Failed to disconnect: {e.Message}", "Disconnect Error");
             CurrentStage = NetworkStage.Disconnected;
-            if (loadingScreen != null) loadingScreen.SetActive(false);
+            ToggleLoadingScreen(false);
         }
     }
 
@@ -238,11 +208,7 @@ public class NetworkManager : MonoBehaviour
         runnerInstance.name = "NetworkRunner";
         runnerInstance.ProvideInput = true;
         DontDestroyOnLoad(runnerInstance.gameObject);
-
-        if (transform.parent != null)
-            transform.parent = null;
-
-        DontDestroyOnLoad(gameObject);
+        fusionHud.InjectRunner(runnerInstance);
 
         return true;
     }
@@ -251,33 +217,25 @@ public class NetworkManager : MonoBehaviour
     {
         if (runnerInstance == null)
         {
-            Debug.LogError("NetworkRunner instance is null.");
+            LogError("NetworkRunner instance is null.", "Runner Error");
             return false;
         }
 
         try
         {
-            var sceneManager = runnerInstance.GetComponent<INetworkSceneManager>();
-            if (sceneManager == null)
-                sceneManager = runnerInstance.gameObject.AddComponent<NetworkSceneManagerDefault>();
-
-            var objectProvider = runnerInstance.GetComponent<INetworkObjectProvider>();
-            if (objectProvider == null)
-                objectProvider = runnerInstance.gameObject.AddComponent<NetworkObjectProviderDefault>();
-
+            ConfigureRunnerComponents();
             var startArgs = new StartGameArgs
             {
                 SessionName = sessionName,
                 GameMode = gameMode,
                 PlayerCount = maxPlayerCount,
                 Scene = sceneRef,
-                SceneManager = sceneManager,
-                ObjectProvider = objectProvider,
+                SceneManager = runnerInstance.GetComponent<INetworkSceneManager>(),
+                ObjectProvider = runnerInstance.GetComponent<INetworkObjectProvider>(),
                 Address = NetAddress.Any()
             };
 
             await runnerInstance.StartGame(startArgs);
-
             await WaitForSceneLoadAsync();
             onSceneReady?.Invoke();
 
@@ -285,39 +243,90 @@ public class NetworkManager : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to start game: {e}");
-            debugWindow.TurnOn();
-            debugText.text = "Something went wrong while starting the game.";
+            LogError($"Failed to start game: {e.Message}", "Start Game Error");
             return false;
         }
     }
 
+    private void ConfigureRunnerComponents()
+    {
+        var sceneManager = runnerInstance.GetComponent<INetworkSceneManager>();
+        if (sceneManager == null)
+            sceneManager = runnerInstance.gameObject.AddComponent<NetworkSceneManagerDefault>();
+
+        var objectProvider = runnerInstance.GetComponent<INetworkObjectProvider>();
+        if (objectProvider == null)
+            objectProvider = runnerInstance.gameObject.AddComponent<NetworkObjectProviderDefault>();
+    }
+
     private async Task WaitForSceneLoadAsync()
     {
-        while (!SceneManager.GetActiveScene().isLoaded)
-            await Task.Yield();
-        await Task.Yield(); // optional extra frame to ensure UI elements are ready
+        var tcs = new TaskCompletionSource<bool>();
 
-        // Add ExitButton event setup
-        var exitButton = FindFirstObjectByType<Button>();
-        Debug.Log($"ExitButton found: {exitButton != null}");
-        exitButton.onClick.RemoveAllListeners();
-        Debug.Log("ExitButton listeners cleared");
-
-        try
+        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            Debug.Log("Trying to add ExitButton listener");
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            tcs.SetResult(true);
+        }
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        await tcs.Task;
+        await Task.Yield(); 
+    }
+
+    private void SetupExitButton()
+    {
+        if (exitButton != null)
+        {
+            exitButton.onClick.RemoveAllListeners();
             exitButton.onClick.AddListener(() =>
             {
-                Debug.Log("ExitButton listener added");
                 debugWindow.TurnOn();
                 debugText.text = "Exiting game...";
                 _ = DisconnectAsync();
             });
         }
-        catch (Exception e)
+    }
+
+    private bool CanStartSession()
+    {
+        if (CurrentStage != NetworkStage.Disconnected)
         {
-            Console.WriteLine(e);
+            LogError($"Cannot start/join game while in stage: {CurrentStage}", "Invalid Stage");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool HandleFailure(string errorMessage)
+    {
+        LogError(errorMessage, "Operation Failed");
+        CurrentStage = NetworkStage.Disconnected;
+        ToggleLoadingScreen(false);
+        return false;
+    }
+
+    private void LogError(string message, string debugTitle)
+    {
+        Debug.LogError(message);
+        debugWindow.TurnOn();
+        debugText.text = $"<size=60>{debugTitle}</size>\n\n{message}";
+    }
+
+    private void ToggleLoadingScreen(bool active)
+    {
+        if (loadingScreen != null)
+            loadingScreen.SetActive(active);
+    }
+
+    private void CleanupRunner()
+    {
+        if (runnerInstance != null)
+        {
+            fusionHud.RemoveRunner();
+            Destroy(runnerInstance.gameObject);
+            runnerInstance = null;
         }
     }
 }
