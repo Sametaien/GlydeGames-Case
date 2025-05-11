@@ -1,36 +1,40 @@
+#region
+
 using Fusion;
 using UnityEngine;
+
+#endregion
 
 namespace UsableItems
 {
     /// <summary>
-    /// This class is responsible for holding and manipulating grabbable objects.
+    ///     This class is responsible for holding and manipulating grabbable objects.
     /// </summary>
-
     [DefaultExecutionOrder(-6)]
     public class ItemHolder : NetworkBehaviour
     {
-        [Header("Holder Props")]
-        [SerializeField] private float maxGrabDistance = 40f;
+        [Header("Holder Props")] [SerializeField]
+        private float maxGrabDistance = 40f;
+
         [SerializeField] private float minGrabDistance = 1f;
         [SerializeField] private LineRenderer holdLine;
 
-        [Header("Spring Settings")]
-        [SerializeField] private float springStrength = 30f;
+        [Header("Spring Settings")] [SerializeField]
+        private float springStrength = 30f;
+
         [SerializeField] private float damperStrength = 20f;
         [SerializeField] private float maxForceMagnitude = 100f;
 
-        [Header("Rotation Settings")]
-        [SerializeField] private Vector3 rotationOffset = Vector3.zero; 
-        [SerializeField] private Vector3 forwardAxis = Vector3.forward; 
-        [SerializeField] private Vector3 upAxis = Vector3.up; 
-        [SerializeField] private float rotationSmoothing = 15f; 
+        [Header("Rotation Settings")] [SerializeField]
+        private float rotationSmoothing = 15f;
 
-        [Header("Push Settings")]
-        [SerializeField] private float pushForce = 1f;
+        [Header("Push Settings")] [SerializeField]
+        private float pushForce = 1f;
+
         [SerializeField] private float minPushVelocity = 2f;
 
         private readonly float _smoothTime = 0.05f;
+        private Quaternion _currentRotation;
 
         private GrabbableState _grabbableState;
         private NetworkObject _holdedNetworkObject;
@@ -38,7 +42,6 @@ namespace UsableItems
         private Camera _mainCamera;
         private float _pickDistance;
         private Vector3 _pickOffset;
-        private Quaternion _currentRotation; 
 
         private Vector3 _smoothedLinePoint0, _smoothedLinePoint1, _smoothedLinePoint2;
         private Vector3 _velocity0, _velocity1, _velocity2;
@@ -93,7 +96,6 @@ namespace UsableItems
         {
             if (!HasStateAuthority || _holdedObject == null) return;
 
-            // Pozisyon güncelleme
             var barrelPos = transform.position;
             var midpoint = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance * 0.5f;
             var endPoint = _holdedObject.position;
@@ -109,21 +111,17 @@ namespace UsableItems
                 maxForceMagnitude);
             _holdedObject.AddForce(force, ForceMode.Force);
 
-            var cameraForward = _mainCamera.transform.forward;
-            var cameraUp = _mainCamera.transform.up;
+            var directionToCamera = -(_mainCamera.transform.position - _holdedObject.position).normalized;
+            var desiredRotation = Quaternion.LookRotation(directionToCamera, _mainCamera.transform.up);
 
-            var forward = _holdedObject.transform.TransformDirection(-forwardAxis);
-            var targetRot = Quaternion.FromToRotation(forward, cameraForward) * _holdedObject.rotation;
-            targetRot *= Quaternion.Euler(rotationOffset); 
+            var offsetRotation = Quaternion.Euler(0, 90, 0);
+            desiredRotation = desiredRotation * offsetRotation;
 
-            var up = _holdedObject.transform.TransformDirection(upAxis);
-            var targetUp = cameraUp;
-            var upRot = Quaternion.FromToRotation(up, targetUp) * targetRot;
+            _currentRotation = Quaternion.Slerp(_currentRotation, desiredRotation, rotationSmoothing * Runner.DeltaTime);
 
-            _currentRotation = Quaternion.Slerp(_currentRotation, upRot, rotationSmoothing * Runner.DeltaTime);
             _holdedObject.MoveRotation(_currentRotation);
         }
-    
+
         public override void Render()
         {
             holdLine.gameObject.SetActive(IsLineActive);
@@ -181,7 +179,7 @@ namespace UsableItems
             _grabbableState = grabbable;
             _pickOffset = Vector3.zero;
             _pickDistance = Mathf.Clamp(hit.distance, minGrabDistance, maxGrabDistance);
-            _currentRotation = _holdedObject.rotation; 
+            _currentRotation = _holdedObject.rotation;
 
             SetHeldState(grabbable, true, netObj);
             holdLine.gameObject.SetActive(true);
@@ -229,7 +227,7 @@ namespace UsableItems
             _holdedObject = null;
             _holdedNetworkObject = null;
             _grabbableState = null;
-            _currentRotation = Quaternion.identity; // Rotasyonu sıfırla
+            _currentRotation = Quaternion.identity; 
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
@@ -272,7 +270,8 @@ namespace UsableItems
             {
                 rb.useGravity = !isHeld;
                 rb.freezeRotation = isHeld;
-                rb.collisionDetectionMode = isHeld ? CollisionDetectionMode.Continuous : CollisionDetectionMode.Discrete;
+                rb.collisionDetectionMode =
+                    isHeld ? CollisionDetectionMode.Continuous : CollisionDetectionMode.Discrete;
                 rb.isKinematic = false;
                 if (!isHeld) rb.WakeUp();
 
