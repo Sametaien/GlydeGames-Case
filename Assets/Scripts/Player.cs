@@ -1,150 +1,81 @@
 #region
 
 using Fusion;
-using TMPro;
+using Fusion.Addons.SimpleKCC;
 using UnityEngine;
 
 #endregion
 
-[RequireComponent(typeof(CharacterController))]
-public class Player : NetworkBehaviour
+
+[DefaultExecutionOrder(-5)]
+public sealed class Player : NetworkBehaviour
 {
-    [Header("Movement")] [SerializeField] private float playerSpeed = 2f;
+    public SimpleKCC KCC;
+    public PlayerInput Input;
+    public Transform CameraPivot;
+    public Transform CameraHandle;
 
-    [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float gravityValue = -9.81f;
+    [Header("Movement")] public float MoveSpeed = 10.0f;
 
-    [Header("Interaction")] [SerializeField]
-    private TextMeshProUGUI interactionText;
+    public float JumpImpulse = 10.0f;
+    public float UpGravity = -25.0f;
+    public float DownGravity = -40.0f;
+    public float GroundAcceleration = 55.0f;
+    public float GroundDeceleration = 25.0f;
+    public float AirAcceleration = 25.0f;
+    public float AirDeceleration = 1.3f;
 
-    [SerializeField] private float pickupDistance = 2f;
-    [SerializeField] private float dropForceMagnitude = 5f;
-    [SerializeField] private PlayerName playerName;
+    [Networked] private Vector3 _moveVelocity { get; set; }
 
-    private CharacterController _controller;
-    private bool _jumpPressed;
-    private PickupItem _nearbyItem;
-    private bool _pickupPressed, _dropPressed;
-    private Vector3 _velocity;
-
-    [Networked] private NetworkObject HeldItem { get; set; }
-
-    private void Awake()
+    private void LateUpdate()
     {
-        _controller = GetComponent<CharacterController>();
-        if (interactionText != null)
-            interactionText.gameObject.SetActive(false);
-    }
-
-    private void Update()
-    {
-        if (!HasInputAuthority || !HasStateAuthority)
+        // Only InputAuthority needs to update camera.
+        if (HasInputAuthority == false)
             return;
 
-        if (Input.GetButtonDown("Jump")) _jumpPressed = true;
-        if (Input.GetKeyDown(KeyCode.E)) _pickupPressed = true;
-        if (Input.GetKeyDown(KeyCode.F)) _dropPressed = true;
+        // Update camera pivot and transfer properties from camera handle to Main Camera.
+        // Render() is executed before KCC because of [OrderBefore(typeof(KCC))].
+        // So we have to do it from LateUpdate() - which is called after Render().
 
-        UpdateInteractionText();
-    }
+        var pitchRotation = KCC.GetLookRotation(true, false);
+        CameraPivot.localRotation = Quaternion.Euler(pitchRotation);
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!HasInputAuthority || !HasStateAuthority) return;
-        var item = other.GetComponent<PickupItem>();
-        if (item != null && !item.IsPickedUp) _nearbyItem = item;
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (!HasInputAuthority || !HasStateAuthority) return;
-        var item = other.GetComponent<PickupItem>();
-        if (item == _nearbyItem) _nearbyItem = null;
-    }
-
-    public override void Spawned()
-    {
-        if (!HasStateAuthority) return;
-        var fps = FindFirstObjectByType<FPSCameraController>();
-        if (fps == null) return;
-
-        playerName.SetPlayerName($"Player_{Random.Range(1000, 9999)}");
-        fps.playerTransform = transform;
-        fps.InitializeCamera();
+        Camera.main.transform.SetPositionAndRotation(CameraHandle.position, CameraHandle.rotation);
     }
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasInputAuthority || !HasStateAuthority) return;
+        // Apply look rotation delta. This propagates to Transform component immediately.
+        KCC.AddLookRotation(Input.CurrentInput.LookRotationDelta);
 
-        if (_controller.isGrounded) _velocity.y = -1f;
-        var inAx = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
-        var move = Vector3.zero;
-        if (inAx.sqrMagnitude > 0f)
-            if (Camera.main != null)
-            {
-                var cf = Camera.main.transform.forward;
-                cf.y = 0;
-                cf.Normalize();
-                var cr = Camera.main.transform.right;
-                cr.y = 0;
-                cr.Normalize();
-                move = (cf * inAx.z + cr * inAx.x).normalized * Runner.DeltaTime * playerSpeed;
-            }
+        // Set default world space input direction and jump impulse.
+        var inputDirection = KCC.TransformRotation * new Vector3(Input.CurrentInput.MoveDirection.x, 0.0f,
+            Input.CurrentInput.MoveDirection.y);
+        float jumpImpulse = default;
 
-        _velocity.y += gravityValue * Runner.DeltaTime;
-        if (_jumpPressed && _controller.isGrounded) _velocity.y += jumpForce;
-        _controller.Move(move + _velocity * Runner.DeltaTime);
-        _jumpPressed = false;
+        // Comparing current input to previous input - this prevents glitches when input is lost.
+        if (Input.CurrentInput.Actions.WasPressed(Input.PreviousInput.Actions, GameplayInput.JUMP_BUTTON))
+            if (KCC.IsGrounded)
+                // Set world space jump vector.
+                jumpImpulse = JumpImpulse;
 
-        if (_pickupPressed && HeldItem == null && _nearbyItem != null)
-        {
-            var dist = Vector3.Distance(transform.position, _nearbyItem.transform.position);
-            if (dist <= pickupDistance)
-            {
-                Debug.Log($"Picking up {_nearbyItem.name}");
-                _nearbyItem.Object.RequestStateAuthority();
-                _nearbyItem.RpcSyncPickup(Object);
-                HeldItem = _nearbyItem.Object;
-            }
-        }
+        // It feels better when the player falls quicker.
+        KCC.SetGravity(KCC.RealVelocity.y >= 0.0f ? UpGravity : DownGravity);
 
-        _pickupPressed = false;
+        var desiredMoveVelocity = inputDirection * MoveSpeed;
 
-        if (_dropPressed && HeldItem != null)
-        {
-            Debug.Log("Dropping held item");
-            if (Camera.main != null)
-            {
-                var force = Camera.main.transform.forward * dropForceMagnitude;
-                HeldItem.GetComponent<PickupItem>().RpcSyncDrop(force);
-            }
+        if (KCC.ProjectOnGround(desiredMoveVelocity, out var projectedDesiredMoveVelocity))
+            desiredMoveVelocity = Vector3.Normalize(projectedDesiredMoveVelocity) * MoveSpeed;
 
-            HeldItem.ReleaseStateAuthority();
-            HeldItem = null;
-        }
-
-        _dropPressed = false;
-    }
-
-    private void UpdateInteractionText()
-    {
-        if (interactionText == null || !HasInputAuthority || !HasStateAuthority) return;
-
-        if (HeldItem != null)
-        {
-            interactionText.text = "Press F to Drop";
-            interactionText.gameObject.SetActive(true);
-        }
-        else if (_nearbyItem != null &&
-                 Vector3.Distance(transform.position, _nearbyItem.transform.position) <= pickupDistance)
-        {
-            interactionText.text = "Press E to Pickup";
-            interactionText.gameObject.SetActive(true);
-        }
+        float acceleration;
+        if (desiredMoveVelocity == Vector3.zero)
+            // No desired move velocity - we are stopping.
+            acceleration = KCC.IsGrounded ? GroundDeceleration : AirDeceleration;
         else
-        {
-            interactionText.gameObject.SetActive(false);
-        }
+            acceleration = KCC.IsGrounded ? GroundAcceleration : AirAcceleration;
+
+        _moveVelocity = Vector3.Lerp(_moveVelocity, desiredMoveVelocity, acceleration * Runner.DeltaTime);
+
+        KCC.Move(_moveVelocity, jumpImpulse);
     }
 }

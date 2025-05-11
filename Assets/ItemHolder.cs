@@ -5,24 +5,28 @@ using UnityEngine;
 
 #endregion
 
+[DefaultExecutionOrder(-6)]
 public class ItemHolder : NetworkBehaviour
 {
-    [Header("Holder Props")] [SerializeField]
-    private float maxGrabDistance = 40f;
-
+    [Header("Holder Props")]
+    [SerializeField] private float maxGrabDistance = 40f;
     [SerializeField] private float minGrabDistance = 1f;
     [SerializeField] private LineRenderer holdLine;
 
-    [Header("Spring Settings")] [SerializeField]
-    private float springStrength = 50f;
-
-    [SerializeField] private float damperStrength = 10f;
+    [Header("Spring Settings")]
+    [SerializeField] private float springStrength = 30f;
+    [SerializeField] private float damperStrength = 20f;
     [SerializeField] private float torqueStrength = 50f;
     [SerializeField] private float angularDamper = 5f;
+    [SerializeField] private float maxForceMagnitude = 100f;
+
+    [Header("Push Settings")]
+    [SerializeField] private float pushForce = 1f;
+    [SerializeField] private float minPushVelocity = 2f;
+
+    private readonly float _smoothTime = 0.05f;
+
     private GrabbableState _grabbableState;
-    
-    
-    
     private NetworkObject _holdedNetworkObject;
     private Rigidbody _holdedObject;
     private Camera _mainCamera;
@@ -30,7 +34,9 @@ public class ItemHolder : NetworkBehaviour
     private Vector3 _pickOffset;
     private Quaternion _rotationOffset;
 
-    // Networked properties for LineRenderer synchronization
+    private Vector3 _smoothedLinePoint0, _smoothedLinePoint1, _smoothedLinePoint2;
+    private Vector3 _velocity0, _velocity1, _velocity2;
+
     [Networked] private NetworkBool IsLineActive { get; set; }
     [Networked] private Vector3 LinePoint0 { get; set; }
     [Networked] private Vector3 LinePoint1 { get; set; }
@@ -62,15 +68,10 @@ public class ItemHolder : NetworkBehaviour
                 origin = ray.origin,
                 direction = ray.direction
             };
-            Debug.Log($"Requesting hold: Ray origin={ray.origin}, direction={ray.direction}");
             RpcRequestHold(inputData);
         }
 
-        if (Input.GetKeyUp(KeyCode.Mouse0))
-        {
-            Debug.Log("Releasing object via Mouse0 up");
-            RpcRelease();
-        }
+        if (Input.GetKeyUp(KeyCode.Mouse0)) RpcRelease();
 
         var scroll = Input.mouseScrollDelta.y;
         if (Mathf.Abs(scroll) > 0f) RpcAdjustDistance(scroll);
@@ -80,21 +81,19 @@ public class ItemHolder : NetworkBehaviour
     {
         if (!HasStateAuthority || _holdedObject == null) return;
 
-        // Calculate line points for synchronization
         var barrelPos = transform.position;
         var midpoint = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance * 0.5f;
-        var endPoint = _holdedObject.position + _holdedObject.transform.TransformVector(_pickOffset);
+        var endPoint = _holdedObject.position;
 
-        // Update networked properties
         IsLineActive = true;
         LinePoint0 = barrelPos;
         LinePoint1 = midpoint;
         LinePoint2 = endPoint;
 
-        var targetPos = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance -
-                        _holdedObject.transform.TransformVector(_pickOffset);
+        var targetPos = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance;
         var error = targetPos - _holdedObject.position;
-        var force = error * springStrength - _holdedObject.velocity * damperStrength;
+        var force = Vector3.ClampMagnitude(error * springStrength - _holdedObject.velocity * damperStrength,
+            maxForceMagnitude);
         _holdedObject.AddForce(force, ForceMode.Force);
 
         var desiredRot = _mainCamera.transform.rotation * _rotationOffset;
@@ -103,37 +102,34 @@ public class ItemHolder : NetworkBehaviour
         if (angleDeg > 180f) angleDeg -= 360f;
         if (axis.sqrMagnitude > 0.001f)
         {
-            var torque = axis.normalized * (angleDeg * Mathf.Deg2Rad) * torqueStrength
-                         - _holdedObject.angularVelocity * angularDamper;
+            var torque = axis.normalized * (angleDeg * Mathf.Deg2Rad) * torqueStrength -
+                         _holdedObject.angularVelocity * angularDamper;
             _holdedObject.AddTorque(torque, ForceMode.Force);
         }
-
-        if (_holdedObject.isKinematic)
-            Debug.LogWarning($"Held object {_holdedObject.name} is unexpectedly kinematic during hold!");
     }
 
     public override void Render()
     {
-        // Update LineRenderer on all clients
         holdLine.gameObject.SetActive(IsLineActive);
-        if (IsLineActive) DrawQuadraticBezierCurve(holdLine, LinePoint0, LinePoint1, LinePoint2);
+        if (!IsLineActive) return;
+
+        var localBarrelPos = transform.position;
+        var localMidpoint = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance * 0.5f;
+        var localEndPoint = _holdedObject != null ? _holdedObject.position : LinePoint2;
+
+        _smoothedLinePoint0 = Vector3.SmoothDamp(_smoothedLinePoint0, localBarrelPos, ref _velocity0, _smoothTime);
+        _smoothedLinePoint1 = Vector3.SmoothDamp(_smoothedLinePoint1, localMidpoint, ref _velocity1, _smoothTime);
+        _smoothedLinePoint2 = Vector3.SmoothDamp(_smoothedLinePoint2, localEndPoint, ref _velocity2, _smoothTime);
+
+        DrawQuadraticBezierCurve(holdLine, _smoothedLinePoint0, _smoothedLinePoint1, _smoothedLinePoint2);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RpcRequestHold(NetworkInputData input)
     {
-        Debug.Log($"RpcRequestHold called: origin={input.origin}, direction={input.direction}");
-        if (!Physics.Raycast(input.origin, input.direction, out var hit, maxGrabDistance))
-        {
-            Debug.Log("Raycast failed: No hit within maxGrabDistance");
-            return;
-        }
+        if (!Physics.Raycast(input.origin, input.direction, out var hit, maxGrabDistance)) return;
 
-        if (hit.rigidbody == null || hit.rigidbody.CompareTag("Player"))
-        {
-            Debug.Log($"Raycast hit invalid: rigidbody={hit.rigidbody}, tag={hit.collider?.tag}");
-            return;
-        }
+        if (hit.rigidbody == null || hit.rigidbody.CompareTag("Player")) return;
 
         var netObj = hit.rigidbody.GetComponent<NetworkObject>();
         if (netObj == null)
@@ -151,7 +147,7 @@ public class ItemHolder : NetworkBehaviour
 
         if (!CanBeGrabbed(grabbable))
         {
-            Debug.Log($"Object {netObj.name} is already held by another player");
+            Debug.Log($"Object {netObj.name} is already holded by another player");
             return;
         }
 
@@ -160,13 +156,17 @@ public class ItemHolder : NetworkBehaviour
         _holdedNetworkObject = netObj;
         _holdedObject = hit.rigidbody;
         _grabbableState = grabbable;
-        _pickOffset = hit.transform.InverseTransformVector(hit.point - hit.transform.position);
+        _pickOffset = Vector3.zero;
         _rotationOffset = Quaternion.Inverse(_mainCamera.transform.rotation) * hit.rigidbody.rotation;
         _pickDistance = Mathf.Clamp(hit.distance, minGrabDistance, maxGrabDistance);
 
         SetHeldState(grabbable, true, netObj);
         holdLine.gameObject.SetActive(true);
         IsLineActive = true;
+
+        // Add collision handler
+        var collisionHandler = _holdedObject.gameObject.AddComponent<HeldObjectCollisionHandler>();
+        collisionHandler.Initialize(this, pushForce, minPushVelocity);
 
         Debug.Log(
             $"Hold setup: isKinematic={_holdedObject.isKinematic}, useGravity={_holdedObject.useGravity}, freezeRotation={_holdedObject.freezeRotation}");
@@ -183,6 +183,13 @@ public class ItemHolder : NetworkBehaviour
             IsLineActive = false;
             SetHeldState(_grabbableState, false, null);
 
+            // Remove collision handler
+            var collisionHandler = _holdedObject.GetComponent<HeldObjectCollisionHandler>();
+            if (collisionHandler != null)
+            {
+                Destroy(collisionHandler);
+            }
+
             Debug.Log(
                 $"{_holdedObject.name} physics state reset in RpcRelease: isKinematic={_holdedObject.isKinematic}, useGravity={_holdedObject.useGravity}, freezeRotation={_holdedObject.freezeRotation}");
         }
@@ -197,6 +204,20 @@ public class ItemHolder : NetworkBehaviour
     {
         _pickDistance = Mathf.Clamp(_pickDistance + delta, minGrabDistance, maxGrabDistance);
         Debug.Log($"Adjusting pick distance: new distance={_pickDistance}");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RpcApplyPushForce(NetworkId targetId, Vector3 force)
+    {
+        var targetObj = Runner.FindObject(targetId);
+        if (targetObj == null) return;
+
+        var rb = targetObj.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.AddForce(force, ForceMode.Impulse);
+            Debug.Log($"Applied push force to {targetObj.name}: force={force}");
+        }
     }
 
     private bool CanBeGrabbed(GrabbableState grabbable)
@@ -229,7 +250,7 @@ public class ItemHolder : NetworkBehaviour
     {
         line.positionCount = 20;
         var t = 0f;
-        var B = new Vector3(0, 0, 0);
+        var B = new Vector3(0, .7f, 0);
         for (var i = 0; i < line.positionCount; i++)
         {
             B = (1 - t) * (1 - t) * point0 + 2 * (1 - t) * t * point1 + t * t * point2;

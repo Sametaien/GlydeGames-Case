@@ -94,7 +94,7 @@ public class PickupItem : NetworkBehaviour
         PickedUpBy = null;
         _trigger.enabled = true;
 
-        _rb.useGravity = true; 
+        _rb.useGravity = true;
         _rb.velocity = Vector3.zero;
         _rb.angularVelocity = Vector3.zero;
         _rb.AddForce(dropForce, ForceMode.Impulse);
