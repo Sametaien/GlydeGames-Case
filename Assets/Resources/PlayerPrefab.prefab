@@ -898,7 +898,7 @@ MonoBehaviour:
   torqueStrength: 50
   angularDamper: 5
   maxForceMagnitude: 100
-  pushForce: 25
+  pushForce: 50
   minPushVelocity: 1
 --- !u!114 &2926558834035830883
 MonoBehaviour:

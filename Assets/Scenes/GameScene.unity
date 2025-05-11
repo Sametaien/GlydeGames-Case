@@ -2673,7 +2673,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 86913526}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -2966,7 +2966,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e2d9973e5f8407cb3c4c6abf5c525c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  door: {fileID: 391295885}
+  door: {fileID: 1815486724}
 --- !u!1001 &94447639
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3866,7 +3866,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 2625969976
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 524289
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 118763043}
@@ -11928,7 +11928,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 349552395}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -12949,7 +12949,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 1816039430
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 524289
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 391295884}
@@ -15426,7 +15426,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 473099476}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -27744,7 +27744,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 530671033}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -31237,7 +31237,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e2d9973e5f8407cb3c4c6abf5c525c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  door: {fileID: 391295885}
+  door: {fileID: 839723716}
 --- !u!1001 &634838216
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -33188,7 +33188,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 703711836}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -33508,7 +33508,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 567456786
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 524289
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 708014480}
@@ -45317,7 +45317,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 4106589125
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 524289
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 839723716}
@@ -47208,7 +47208,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 875899769}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -50639,7 +50639,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1001809444}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -51340,7 +51340,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1010498717}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -53013,7 +53013,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1072313372}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -54956,7 +54956,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1136034170}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -57501,7 +57501,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1214197350}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -58254,7 +58254,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1241341079}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -67955,7 +67955,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1570654795}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -73207,7 +73207,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e2d9973e5f8407cb3c4c6abf5c525c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  door: {fileID: 391295885}
+  door: {fileID: 708014480}
 --- !u!1001 &1717025318
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -76616,7 +76616,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1795862427}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -77384,7 +77384,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1811418496}
   serializedVersion: 4
-  m_Mass: 2
+  m_Mass: 1.5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -77540,7 +77540,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 3571266541
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 524289
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 1815486724}
@@ -78538,7 +78538,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e2d9973e5f8407cb3c4c6abf5c525c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  door: {fileID: 391295885}
+  door: {fileID: 1875392683}
 --- !u!1 &1844827245
 GameObject:
   m_ObjectHideFlags: 0
@@ -79295,7 +79295,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 2848033902
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 524289
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 1875392683}
@@ -84645,7 +84645,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e2d9973e5f8407cb3c4c6abf5c525c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  door: {fileID: 391295885}
+  door: {fileID: 118763043}
 --- !u!1001 &2083887377
 PrefabInstance:
   m_ObjectHideFlags: 0

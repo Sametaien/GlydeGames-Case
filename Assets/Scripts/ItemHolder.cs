@@ -8,20 +8,23 @@ using UnityEngine;
 [DefaultExecutionOrder(-6)]
 public class ItemHolder : NetworkBehaviour
 {
-    [Header("Holder Props")]
-    [SerializeField] private float maxGrabDistance = 40f;
+    [Header("Holder Props")] [SerializeField]
+    private float maxGrabDistance = 40f;
+
     [SerializeField] private float minGrabDistance = 1f;
     [SerializeField] private LineRenderer holdLine;
 
-    [Header("Spring Settings")]
-    [SerializeField] private float springStrength = 30f;
+    [Header("Spring Settings")] [SerializeField]
+    private float springStrength = 30f;
+
     [SerializeField] private float damperStrength = 20f;
     [SerializeField] private float torqueStrength = 50f;
     [SerializeField] private float angularDamper = 5f;
     [SerializeField] private float maxForceMagnitude = 100f;
 
-    [Header("Push Settings")]
-    [SerializeField] private float pushForce = 1f;
+    [Header("Push Settings")] [SerializeField]
+    private float pushForce = 1f;
+
     [SerializeField] private float minPushVelocity = 2f;
 
     private readonly float _smoothTime = 0.05f;
@@ -113,13 +116,20 @@ public class ItemHolder : NetworkBehaviour
         holdLine.gameObject.SetActive(IsLineActive);
         if (!IsLineActive) return;
 
-        var localBarrelPos = transform.position;
-        var localMidpoint = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance * 0.5f;
-        var localEndPoint = _holdedObject != null ? _holdedObject.position : LinePoint2;
+        var targetPoint0 = LinePoint0;
+        var targetPoint1 = LinePoint1;
+        var targetPoint2 = LinePoint2;
 
-        _smoothedLinePoint0 = Vector3.SmoothDamp(_smoothedLinePoint0, localBarrelPos, ref _velocity0, _smoothTime);
-        _smoothedLinePoint1 = Vector3.SmoothDamp(_smoothedLinePoint1, localMidpoint, ref _velocity1, _smoothTime);
-        _smoothedLinePoint2 = Vector3.SmoothDamp(_smoothedLinePoint2, localEndPoint, ref _velocity2, _smoothTime);
+        if (HasInputAuthority)
+        {
+            targetPoint0 = transform.position;
+            targetPoint1 = _mainCamera.transform.position + _mainCamera.transform.forward * _pickDistance * 0.5f;
+            targetPoint2 = _holdedObject != null ? _holdedObject.position : LinePoint2;
+        }
+
+        _smoothedLinePoint0 = Vector3.SmoothDamp(_smoothedLinePoint0, targetPoint0, ref _velocity0, _smoothTime);
+        _smoothedLinePoint1 = Vector3.SmoothDamp(_smoothedLinePoint1, targetPoint1, ref _velocity1, _smoothTime);
+        _smoothedLinePoint2 = Vector3.SmoothDamp(_smoothedLinePoint2, targetPoint2, ref _velocity2, _smoothTime);
 
         DrawQuadraticBezierCurve(holdLine, _smoothedLinePoint0, _smoothedLinePoint1, _smoothedLinePoint2);
     }
@@ -185,10 +195,7 @@ public class ItemHolder : NetworkBehaviour
 
             // Remove collision handler
             var collisionHandler = _holdedObject.GetComponent<HeldObjectCollisionHandler>();
-            if (collisionHandler != null)
-            {
-                Destroy(collisionHandler);
-            }
+            if (collisionHandler != null) Destroy(collisionHandler);
 
             Debug.Log(
                 $"{_holdedObject.name} physics state reset in RpcRelease: isKinematic={_holdedObject.isKinematic}, useGravity={_holdedObject.useGravity}, freezeRotation={_holdedObject.freezeRotation}");
