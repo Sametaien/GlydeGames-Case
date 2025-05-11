@@ -42,10 +42,11 @@ public class NetworkManager : MonoBehaviour
     private UnityEvent onSceneReady;
 
     [Header("UI References")] [SerializeField]
-    private Button exitButton; 
+    private Button exitButton;
+
+    public NetworkRunner runnerInstance;
 
     private NetworkStage currentStage = NetworkStage.Disconnected;
-    public NetworkRunner runnerInstance;
 
     #region Singleton
 
@@ -237,6 +238,7 @@ public class NetworkManager : MonoBehaviour
 
             await runnerInstance.StartGame(startArgs);
             await WaitForSceneLoadAsync();
+            SetupExitButton();
             onSceneReady?.Invoke();
 
             return true;
@@ -271,11 +273,13 @@ public class NetworkManager : MonoBehaviour
 
         SceneManager.sceneLoaded += OnSceneLoaded;
         await tcs.Task;
-        await Task.Yield(); 
+        await Task.Yield();
     }
 
     private void SetupExitButton()
     {
+        exitButton = GameObject.FindGameObjectWithTag("ExitButton")?.GetComponent<Button>();
+
         if (exitButton != null)
         {
             exitButton.onClick.RemoveAllListeners();

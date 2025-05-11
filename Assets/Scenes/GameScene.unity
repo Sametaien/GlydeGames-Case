@@ -3887,7 +3887,7 @@ MonoBehaviour:
   openAngle: 90
   closeAngle: 0
   openSpeed: 15
-  boxColliderSize: {x: 3, y: 2, z: 3}
+  boxColliderSize: {x: 1, y: 1, z: 1}
   interactionText: {fileID: 1714430274}
   interactionTrigger: {fileID: 2082873363}
 --- !u!1001 &122458872
@@ -12987,7 +12987,7 @@ MonoBehaviour:
   openAngle: 90
   closeAngle: 0
   openSpeed: 15
-  boxColliderSize: {x: 3, y: 2, z: 3}
+  boxColliderSize: {x: 1, y: 1, z: 1}
   interactionText: {fileID: 1714430274}
   interactionTrigger: {fileID: 1451494120}
 --- !u!1001 &394356118
@@ -33529,7 +33529,7 @@ MonoBehaviour:
   openAngle: 90
   closeAngle: 0
   openSpeed: 15
-  boxColliderSize: {x: 3, y: 2, z: 3}
+  boxColliderSize: {x: 1, y: 1, z: 1}
   interactionText: {fileID: 1714430274}
   interactionTrigger: {fileID: 1715521964}
 --- !u!1001 &708488008
@@ -34669,7 +34669,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Disconnect
+  m_text: Backspace for Disconnect
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -45338,7 +45338,7 @@ MonoBehaviour:
   openAngle: 90
   closeAngle: 0
   openSpeed: 15
-  boxColliderSize: {x: 3, y: 2, z: 3}
+  boxColliderSize: {x: 1, y: 1, z: 1}
   interactionText: {fileID: 1714430274}
   interactionTrigger: {fileID: 634177004}
 --- !u!114 &839723717
@@ -66096,7 +66096,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -15, y: -15}
-  m_SizeDelta: {x: 123.69995, y: 50}
+  m_SizeDelta: {x: 198.4, y: 50}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &1479193116
 MonoBehaviour:
@@ -77561,7 +77561,7 @@ MonoBehaviour:
   openAngle: 90
   closeAngle: 0
   openSpeed: 15
-  boxColliderSize: {x: 3, y: 2, z: 3}
+  boxColliderSize: {x: 1, y: 1, z: 1}
   interactionText: {fileID: 1714430274}
   interactionTrigger: {fileID: 94239567}
 --- !u!1001 &1820107341
@@ -79316,7 +79316,7 @@ MonoBehaviour:
   openAngle: 90
   closeAngle: 0
   openSpeed: 15
-  boxColliderSize: {x: 3, y: 2, z: 3}
+  boxColliderSize: {x: 1, y: 1, z: 1}
   interactionText: {fileID: 1714430274}
   interactionTrigger: {fileID: 1842941555}
 --- !u!1001 &1876325755
