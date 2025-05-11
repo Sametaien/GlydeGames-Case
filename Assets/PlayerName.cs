@@ -30,7 +30,7 @@ public class PlayerName : NetworkBehaviour
         if (HasStateAuthority)
         {
             
-            PlayerDisplayName = "Player_" + Random.Range(1000, 9999);
+            PlayerDisplayName = PlayerPrefs.GetString("PlayerName", "Player" + Random.Range(0, 100));
             Debug.Log($"Assigned player name: {PlayerDisplayName}");
         }
 

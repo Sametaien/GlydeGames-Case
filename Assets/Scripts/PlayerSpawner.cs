@@ -36,12 +36,13 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined
                 return;
             }
 
-            var spawnPosition = new Vector3(Random.Range(23f, 25f), 1f, Random.Range(-8f, -10f));
+            var spawnPosition = new Vector3(Random.Range(4f, 6f), 1f, Random.Range(-1, 1));
+            var spawnRotation = Quaternion.Euler(0, 180, 0);
             try
             {
-                var spawnedPlayer = runner.Spawn(playerPrefab, spawnPosition, Quaternion.identity, player);
+                var spawnedPlayer = runner.Spawn(playerPrefab, spawnPosition, spawnRotation, player);
                 runner.SetPlayerObject(player, spawnedPlayer);
-                runner.SetPlayerAlwaysInterested(player, spawnedPlayer,true);
+                runner.SetPlayerAlwaysInterested(player, spawnedPlayer, true);
 
                 if (spawnedPlayer == null)
                     Debug.LogError($"Spawned player is null for player {player}.");

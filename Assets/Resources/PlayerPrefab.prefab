@@ -318,6 +318,7 @@ GameObject:
   - component: {fileID: 2837918431540591622}
   - component: {fileID: 8579491740547709495}
   - component: {fileID: 4844683705086483295}
+  - component: {fileID: 754971015675253690}
   m_Layer: 0
   m_Name: PlayerPrefab
   m_TagString: Player
@@ -483,6 +484,27 @@ MonoBehaviour:
     StepRequireGroundTarget: 1
     SnapDistance: 0.25
     SnapSpeed: 4
+--- !u!65 &754971015675253690
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2770891841816477035}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 0.46, z: 1}
+  m_Center: {x: 0, y: 0.33, z: 0.9}
 --- !u!1 &3382358966432409211
 GameObject:
   m_ObjectHideFlags: 0
@@ -876,8 +898,8 @@ MonoBehaviour:
   torqueStrength: 50
   angularDamper: 5
   maxForceMagnitude: 100
-  pushForce: 10
-  minPushVelocity: 2
+  pushForce: 25
+  minPushVelocity: 1
 --- !u!114 &2926558834035830883
 MonoBehaviour:
   m_ObjectHideFlags: 0
