@@ -1,6 +1,7 @@
 #region
 
 using Fusion;
+using Network;
 using UnityEngine;
 
 #endregion

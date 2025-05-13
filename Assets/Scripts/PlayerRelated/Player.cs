@@ -2,6 +2,7 @@
 
 using Fusion;
 using Fusion.Addons.SimpleKCC;
+using Network;
 using UnityEngine;
 
 #endregion
